@@ -85,11 +85,14 @@ git push -u origin main
    - [ ] Click "Create Web Service"
    - [ ] Wait for deployment (5-10 minutes)
    - [ ] Note your backend URL: `https://YOUR-APP.onrender.com`
+   - [ ] Database will auto-initialize on first startup! ✨
 
-6. **Initialize Database:**
-   - [ ] Go to Shell tab in Render dashboard
-   - [ ] Run: `cd backend && python init_db.py`
-   - [ ] Verify: `curl https://YOUR-APP.onrender.com/api/players/`
+6. **Verify Deployment:**
+   - [ ] Check deployment logs - should see "Database initialized with 50 questions and 32 quotes"
+   - [ ] Test API: `curl https://YOUR-APP.onrender.com/api/players/`
+   - [ ] Visit API docs: `https://YOUR-APP.onrender.com/docs`
+
+**Note:** No shell access needed! The app automatically initializes the database on startup. 🎉
 
 ---
 
