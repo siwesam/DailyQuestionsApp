@@ -145,6 +145,8 @@ app.add_middleware(
         "http://localhost:3000",  # React default
         "http://localhost:5173",  # Vite default
         "http://localhost:8080",  # Vue default
+        "https://daily-questions-app.vercel.app",  # Production frontend
+        "https://*.vercel.app",  # All Vercel preview deployments
     ],
     allow_credentials=True,
     allow_methods=["*"],
