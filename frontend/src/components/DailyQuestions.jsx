@@ -12,6 +12,7 @@ function DailyQuestions({ playerId }) {
 
   useEffect(() => {
     fetchQuestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]);
 
   const fetchQuestion = async () => {
