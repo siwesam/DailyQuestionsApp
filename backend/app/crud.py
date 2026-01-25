@@ -96,10 +96,11 @@ def get_random_question(db: Session) -> Optional[models.Question]:
     return random.choice(questions) if questions else None
 
 
-def get_random_question_for_player(db: Session, player_id: str, days_back: int = 30) -> Optional[models.Question]:
+def get_random_question_for_player(db: Session, player_id: str, days_back: int = 7) -> Optional[models.Question]:
     """
     Get a random question that the player hasn't answered in the last N days.
-    If all questions have been answered recently, return any random question.
+    If all questions have been answered recently, allow repeating questions.
+    Default is 7 days to allow more frequent question rotation.
     """
     # Get questions answered by player in last N days
     cutoff_date = date.today() - timedelta(days=days_back)
@@ -111,14 +112,21 @@ def get_random_question_for_player(db: Session, player_id: str, days_back: int =
     ).all()
     answered_ids = [q[0] for q in answered_question_ids]
     
-    # Get questions not answered recently
-    available_questions = db.query(models.Question).filter(
-        ~models.Question.id.in_(answered_ids) if answered_ids else True
-    ).all()
+    # Get all questions from database
+    all_questions = db.query(models.Question).all()
     
+    if not all_questions:
+        return None
+    
+    # Get questions not answered recently
+    if answered_ids:
+        available_questions = [q for q in all_questions if q.id not in answered_ids]
+    else:
+        available_questions = all_questions
+    
+    # If all questions answered recently, allow repeating (return any question)
     if not available_questions:
-        # If all questions answered recently, return any random question
-        available_questions = db.query(models.Question).all()
+        available_questions = all_questions
     
     return random.choice(available_questions) if available_questions else None
 
