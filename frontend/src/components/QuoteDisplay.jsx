@@ -16,45 +16,89 @@ function QuoteDisplay({ playerId }) {
     try {
       setLoading(true);
       setError(null);
-      setProgressMessage('Starting...');
+      setProgressMessage('Finding your perfect quote...');
       console.log('Fetching quote with progress for player:', playerId);
       
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const eventSource = new EventSource(`${API_BASE_URL}/api/quotes/match/${playerId}/stream`);
       
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('Progress update:', data);
-          
-          if (data.error) {
-            setError(data.error);
-            setLoading(false);
+      // Try SSE first, but with timeout fallback
+      let sseTimeout;
+      let eventSource;
+      
+      try {
+        eventSource = new EventSource(`${API_BASE_URL}/api/quotes/match/${playerId}/stream`);
+        
+        // Set a timeout to fallback to regular API if SSE doesn't work
+        sseTimeout = setTimeout(() => {
+          console.log('SSE timeout, falling back to regular API');
+          if (eventSource) {
             eventSource.close();
-          } else if (data.status === 'complete' && data.quote) {
-            setQuote(data.quote);
-            setLoading(false);
-            setProgressMessage('');
-            eventSource.close();
-          } else if (data.message) {
-            setProgressMessage(data.message);
           }
-        } catch (err) {
-          console.error('Error parsing SSE data:', err);
-        }
-      };
-      
-      eventSource.onerror = (err) => {
-        console.error('EventSource error:', err);
-        setError('Failed to load quote. Please try again.');
-        setLoading(false);
-        setProgressMessage('');
-        eventSource.close();
-      };
+          fetchQuoteFallback();
+        }, 3000); // 3 second timeout
+        
+        eventSource.onmessage = (event) => {
+          try {
+            clearTimeout(sseTimeout); // Clear timeout on first message
+            const data = JSON.parse(event.data);
+            console.log('Progress update:', data);
+            
+            if (data.error) {
+              setError(data.error);
+              setLoading(false);
+              eventSource.close();
+            } else if (data.status === 'complete' && data.quote) {
+              setQuote(data.quote);
+              setLoading(false);
+              setProgressMessage('');
+              eventSource.close();
+            } else if (data.message) {
+              setProgressMessage(data.message);
+            }
+          } catch (err) {
+            console.error('Error parsing SSE data:', err);
+          }
+        };
+        
+        eventSource.onerror = (err) => {
+          console.error('EventSource error:', err);
+          clearTimeout(sseTimeout);
+          eventSource.close();
+          // Fallback to regular API
+          fetchQuoteFallback();
+        };
+        
+      } catch (sseErr) {
+        console.error('SSE not supported or failed:', sseErr);
+        clearTimeout(sseTimeout);
+        // Fallback to regular API
+        fetchQuoteFallback();
+      }
       
     } catch (err) {
       console.error('Error fetching quote:', err);
       setError('Failed to load quote. Please try again.');
+      setLoading(false);
+      setProgressMessage('');
+    }
+  };
+  
+  const fetchQuoteFallback = async () => {
+    try {
+      console.log('Using fallback API');
+      setProgressMessage('Loading quote...');
+      const data = await api.getPersonalizedQuote(playerId);
+      console.log('Quote data received:', data);
+      setQuote(data);
+      setLoading(false);
+      setProgressMessage('');
+    } catch (err) {
+      console.error('Error fetching quote:', err);
+      if (err.response?.status === 404) {
+        setError('Please answer some questions first to get a personalized quote.');
+      } else {
+        setError('Failed to load quote. Please try again.');
+      }
       setLoading(false);
       setProgressMessage('');
     }
