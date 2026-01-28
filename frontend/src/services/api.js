@@ -55,8 +55,8 @@ const apiService = {
   },
   
   // Quotes
-  getPersonalizedQuote: async (playerId) => {
-    const response = await api.get(`/api/quotes/match/${playerId}`);
+  getPersonalizedQuote: async (playerId, useAi = false) => {
+    const response = await api.get(`/api/quotes/match/${playerId}?use_ai=${useAi}`);
     return response.data;
   },
   
