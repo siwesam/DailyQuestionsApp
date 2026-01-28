@@ -21,27 +21,48 @@ function QuoteDisplay({ playerId }) {
       setLoading(true);
       setError(null);
       setProgressSteps([]);
-      addProgressStep('Starting quote search...');
       console.log('Fetching quote with progress for player:', playerId);
       
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       
-      // Use regular API without AI (faster)
-      // SSE with AI is too slow, so we'll use simple keyword matching
+      // Use SSE with AI for real-time progress
       try {
-        addProgressStep('Loading quote...');
-        const data = await api.getPersonalizedQuote(playerId, false); // use_ai=false
-        console.log('Quote data received:', data);
-        addProgressStep('Quote found!');
-        setQuote(data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching quote:', err);
-        if (err.response?.status === 404) {
-          setError('Please answer some questions first to get a personalized quote.');
-        } else {
+        const eventSource = new EventSource(`${API_BASE_URL}/api/quotes/match/${playerId}/stream?use_ai=true`);
+        
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('Progress update:', data);
+            
+            if (data.error) {
+              setError(data.error);
+              setLoading(false);
+              eventSource.close();
+            } else if (data.status === 'complete' && data.quote) {
+              addProgressStep('✨ Quote ready!');
+              setTimeout(() => {
+                setQuote(data.quote);
+                setLoading(false);
+              }, 500);
+              eventSource.close();
+            } else if (data.message) {
+              addProgressStep(data.message);
+            }
+          } catch (err) {
+            console.error('Error parsing SSE data:', err);
+          }
+        };
+        
+        eventSource.onerror = (err) => {
+          console.error('EventSource error:', err);
           setError('Failed to load quote. Please try again.');
-        }
+          setLoading(false);
+          eventSource.close();
+        };
+        
+      } catch (err) {
+        console.error('Error with SSE:', err);
+        setError('Failed to load quote. Please try again.');
         setLoading(false);
       }
       
