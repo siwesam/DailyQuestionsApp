@@ -15,9 +15,9 @@ Base.metadata.create_all(bind=engine)
 print('✓ Tables created successfully')
 " || echo "Tables already exist or creation failed"
 
-# Run database migrations
+# CRITICAL: Run database migrations to add new columns
 echo "Running database migrations..."
-python migrations/add_ai_quote_fields.py || echo "Migration already applied or failed (continuing anyway)"
+python migrations/add_ai_quote_fields.py
 
 # Initialize database with questions if needed
 echo "Checking database initialization..."
