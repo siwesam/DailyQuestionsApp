@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import './DailyQuestions.css';
 
 function DailyQuestions({ playerId }) {
   const navigate = useNavigate();
+  const successTimeoutRef = useRef(null);
   const [question, setQuestion] = useState(null);
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,15 @@ function DailyQuestions({ playerId }) {
     fetchQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchQuestion = async () => {
     try {
@@ -56,10 +66,7 @@ function DailyQuestions({ playerId }) {
       });
       setSuccess(true);
       setAnswer('');
-      // Wait a moment to show success message
-      setTimeout(() => {
-        setSuccess(false);
-      }, 2000);
+      // Don't auto-hide success message - let user choose what to do
     } catch (err) {
       setError('Failed to submit answer. Please try again.');
       console.error('Error submitting answer:', err);
@@ -69,10 +76,19 @@ function DailyQuestions({ playerId }) {
   };
 
   const handleAnswerMore = () => {
+    // Clear any pending timeout
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current);
+    }
+    setSuccess(false);
     fetchQuestion();
   };
 
   const handleFinish = () => {
+    // Clear any pending timeout
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current);
+    }
     navigate('/quote');
   };
 
