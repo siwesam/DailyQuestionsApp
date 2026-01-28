@@ -6,29 +6,57 @@ function QuoteDisplay({ playerId }) {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [progressMessage, setProgressMessage] = useState('');
 
   useEffect(() => {
-    fetchQuote();
+    fetchQuoteWithProgress();
   }, [playerId]);
 
-  const fetchQuote = async () => {
+  const fetchQuoteWithProgress = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching quote for player:', playerId);
-      const data = await api.getPersonalizedQuote(playerId);
-      console.log('Quote data received:', data);
-      setQuote(data);
+      setProgressMessage('Starting...');
+      console.log('Fetching quote with progress for player:', playerId);
+      
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const eventSource = new EventSource(`${API_BASE_URL}/api/quotes/match/${playerId}/stream`);
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Progress update:', data);
+          
+          if (data.error) {
+            setError(data.error);
+            setLoading(false);
+            eventSource.close();
+          } else if (data.status === 'complete' && data.quote) {
+            setQuote(data.quote);
+            setLoading(false);
+            setProgressMessage('');
+            eventSource.close();
+          } else if (data.message) {
+            setProgressMessage(data.message);
+          }
+        } catch (err) {
+          console.error('Error parsing SSE data:', err);
+        }
+      };
+      
+      eventSource.onerror = (err) => {
+        console.error('EventSource error:', err);
+        setError('Failed to load quote. Please try again.');
+        setLoading(false);
+        setProgressMessage('');
+        eventSource.close();
+      };
+      
     } catch (err) {
       console.error('Error fetching quote:', err);
-      console.error('Error response:', err.response);
-      if (err.response?.status === 404) {
-        setError('Please answer some questions first to get a personalized quote.');
-      } else {
-        setError('Failed to load quote. Please try again.');
-      }
-    } finally {
+      setError('Failed to load quote. Please try again.');
       setLoading(false);
+      setProgressMessage('');
     }
   };
 
@@ -52,7 +80,10 @@ function QuoteDisplay({ playerId }) {
   if (loading) {
     return (
       <div className="quote-container">
-        <div className="loading">Finding your perfect quote...</div>
+        <div className="loading">
+          <div className="loading-spinner">✨</div>
+          <p>{progressMessage || 'Finding your perfect quote...'}</p>
+        </div>
       </div>
     );
   }

@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 import logging
+import json
+import asyncio
 
 from .. import crud, schemas
 from ..database import get_db
@@ -112,6 +115,126 @@ def get_matching_quote(player_id: str, use_ai: bool = True, db: Session = Depend
         )
         
         return quote_match
+
+
+@router.get("/match/{player_id}/stream")
+async def get_matching_quote_stream(player_id: str, use_ai: bool = True, db: Session = Depends(get_db)):
+    """
+    Get a quote with real-time progress updates via Server-Sent Events (SSE).
+    Returns a stream of progress messages followed by the final quote.
+    """
+    async def generate_progress():
+        try:
+            # Verify player exists
+            db_player = crud.get_player(db, player_id=player_id)
+            if db_player is None:
+                yield f"data: {json.dumps({'error': 'Player not found'})}\n\n"
+                return
+            
+            # Send initial progress
+            yield f"data: {json.dumps({'status': 'starting', 'message': 'Analyzing your answers...'})}\n\n"
+            await asyncio.sleep(0.1)
+            
+            if use_ai:
+                try:
+                    # Get recent answers
+                    yield f"data: {json.dumps({'status': 'progress', 'message': 'Reviewing your recent responses...'})}\n\n"
+                    await asyncio.sleep(0.1)
+                    
+                    recent_answers = crud.get_player_recent_answers(db, player_id, days=7)
+                    
+                    if not recent_answers:
+                        yield f"data: {json.dumps({'status': 'progress', 'message': 'No recent answers found, selecting random quote...'})}\n\n"
+                        await asyncio.sleep(0.1)
+                    else:
+                        yield f"data: {json.dumps({'status': 'progress', 'message': f'Found {len(recent_answers)} recent answers'})}\n\n"
+                        await asyncio.sleep(0.1)
+                    
+                    # Check existing quotes
+                    yield f"data: {json.dumps({'status': 'progress', 'message': 'Checking database quotes...'})}\n\n"
+                    await asyncio.sleep(0.1)
+                    
+                    existing_quotes = crud.get_quotes(db, limit=100)
+                    yield f"data: {json.dumps({'status': 'progress', 'message': f'Found {len(existing_quotes)} quotes in database'})}\n\n"
+                    await asyncio.sleep(0.1)
+                    
+                    # AI analysis
+                    yield f"data: {json.dumps({'status': 'progress', 'message': 'AI is analyzing your personality...'})}\n\n"
+                    await asyncio.sleep(0.1)
+                    
+                    # Get the quote
+                    logger.info(f"Using AI agent to select quote for player: {player_id}")
+                    quote, relevance_score, reason = ai_quote_agent.select_best_quote(db, player_id)
+                    
+                    if quote.source == 'brainyquote' or quote.is_ai_generated:
+                        yield f"data: {json.dumps({'status': 'progress', 'message': 'Found a perfect match from the web!'})}\n\n"
+                    else:
+                        yield f"data: {json.dumps({'status': 'progress', 'message': 'Selected best matching quote!'})}\n\n"
+                    await asyncio.sleep(0.1)
+                    
+                    # Create response
+                    quote_match = schemas.QuoteMatch(
+                        id=quote.id,
+                        quote_text=quote.quote_text,
+                        author=quote.author,
+                        category=quote.category,
+                        keywords=quote.keywords,
+                        created_at=quote.created_at,
+                        source=quote.source,
+                        is_ai_generated=quote.is_ai_generated,
+                        ai_relevance_reason=reason,
+                        relevance_score=relevance_score
+                    )
+                    
+                    # Send final result
+                    yield f"data: {json.dumps({'status': 'complete', 'quote': quote_match.model_dump(mode='json')})}\n\n"
+                    
+                except Exception as e:
+                    logger.error(f"AI quote selection failed: {e}, falling back to keyword matching")
+                    yield f"data: {json.dumps({'status': 'progress', 'message': 'AI unavailable, using keyword matching...'})}\n\n"
+                    await asyncio.sleep(0.1)
+                    use_ai = False
+            
+            if not use_ai:
+                # Fallback to keyword matching
+                yield f"data: {json.dumps({'status': 'progress', 'message': 'Matching keywords from your answers...'})}\n\n"
+                await asyncio.sleep(0.1)
+                
+                result = crud.find_matching_quote(db, player_id=player_id)
+                if result is None:
+                    yield f"data: {json.dumps({'error': 'No quotes available'})}\n\n"
+                    return
+                
+                quote, relevance_score = result
+                
+                quote_match = schemas.QuoteMatch(
+                    id=quote.id,
+                    quote_text=quote.quote_text,
+                    author=quote.author,
+                    category=quote.category,
+                    keywords=quote.keywords,
+                    created_at=quote.created_at,
+                    source=quote.source,
+                    is_ai_generated=quote.is_ai_generated,
+                    ai_relevance_reason=quote.ai_relevance_reason,
+                    relevance_score=relevance_score
+                )
+                
+                yield f"data: {json.dumps({'status': 'complete', 'quote': quote_match.model_dump(mode='json')})}\n\n"
+                
+        except Exception as e:
+            logger.error(f"Error in quote stream: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate_progress(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @router.get("/{quote_id}", response_model=schemas.Quote)
