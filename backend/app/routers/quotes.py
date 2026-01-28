@@ -124,6 +124,7 @@ async def get_matching_quote_stream(player_id: str, use_ai: bool = True, db: Ses
     Returns a stream of progress messages followed by the final quote.
     """
     async def generate_progress():
+        should_use_ai = use_ai  # Create local variable to avoid scope issues
         try:
             # Verify player exists
             db_player = crud.get_player(db, player_id=player_id)
@@ -135,7 +136,7 @@ async def get_matching_quote_stream(player_id: str, use_ai: bool = True, db: Ses
             yield f"data: {json.dumps({'status': 'starting', 'message': 'Analyzing your answers...'})}\n\n"
             await asyncio.sleep(0.1)
             
-            if use_ai:
+            if should_use_ai:
                 try:
                     # Get recent answers
                     yield f"data: {json.dumps({'status': 'progress', 'message': 'Reviewing your recent responses...'})}\n\n"
@@ -188,14 +189,15 @@ async def get_matching_quote_stream(player_id: str, use_ai: bool = True, db: Ses
                     
                     # Send final result
                     yield f"data: {json.dumps({'status': 'complete', 'quote': quote_match.model_dump(mode='json')})}\n\n"
+                    return  # Exit after successful AI quote
                     
                 except Exception as e:
                     logger.error(f"AI quote selection failed: {e}, falling back to keyword matching")
                     yield f"data: {json.dumps({'status': 'progress', 'message': 'AI unavailable, using keyword matching...'})}\n\n"
                     await asyncio.sleep(0.1)
-                    use_ai = False
+                    should_use_ai = False
             
-            if not use_ai:
+            if not should_use_ai:
                 # Fallback to keyword matching
                 yield f"data: {json.dumps({'status': 'progress', 'message': 'Matching keywords from your answers...'})}\n\n"
                 await asyncio.sleep(0.1)

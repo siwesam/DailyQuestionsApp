@@ -138,7 +138,7 @@ function QuoteDisplay({ playerId }) {
         <div className="error-card">
           <p>{error}</p>
           <div className="action-buttons">
-            <button onClick={fetchQuote} className="btn-retry">
+            <button onClick={fetchQuoteWithProgress} className="btn-retry">
               Try Again
             </button>
             <a href="/questions" className="btn-primary">
