@@ -84,6 +84,11 @@ function DailyQuestions({ playerId }) {
     fetchQuestion();
   };
 
+  const handleSkip = () => {
+    // Skip current question and load a new one
+    fetchQuestion();
+  };
+
   const handleFinish = () => {
     // Clear any pending timeout
     if (successTimeoutRef.current) {
@@ -174,13 +179,23 @@ function DailyQuestions({ playerId }) {
 
                 {error && <div className="error-message">{error}</div>}
 
-                <button 
-                  type="submit" 
-                  className="btn-submit"
-                  disabled={loading || !answer.trim()}
-                >
-                  {loading ? 'Submitting...' : 'Submit Answer'}
-                </button>
+                <div className="form-actions">
+                  <button
+                    type="submit"
+                    className="btn-submit"
+                    disabled={loading || !answer.trim()}
+                  >
+                    {loading ? 'Submitting...' : 'Submit Answer'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSkip}
+                    className="btn-skip"
+                    disabled={loading}
+                  >
+                    Skip Question
+                  </button>
+                </div>
               </form>
             )}
           </>
