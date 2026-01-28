@@ -47,19 +47,33 @@ class AIQuoteAgent:
                 raise ValueError(f"Unsupported AI provider: {self.provider}")
         return self._client
     
-    def _call_ai(self, system_prompt: str, user_prompt: str) -> str:
+    def _call_ai(self, system_prompt: str, user_prompt: str, log_callback=None) -> str:
         """
         Call the AI provider with the given prompts.
         
         Args:
             system_prompt: System instructions for the AI
             user_prompt: User query/request
+            log_callback: Optional callback function for logging progress
             
         Returns:
             AI response as string
         """
+        import time
+        start_time = time.time()
+        
         try:
             client = self._get_client()
+            
+            # Log the request
+            logger.info(f"=== AI Call Start ===")
+            logger.info(f"Provider: {self.provider}")
+            logger.info(f"Model: {self.model}")
+            logger.info(f"System Prompt: {system_prompt[:200]}...")
+            logger.info(f"User Prompt: {user_prompt[:200]}...")
+            
+            if log_callback:
+                log_callback(f"🤖 Calling {self.provider} API ({self.model})...")
             
             if self.provider == "openai":
                 response = client.chat.completions.create(
@@ -71,8 +85,9 @@ class AIQuoteAgent:
                     temperature=0.7,
                     max_tokens=1000
                 )
-                return response.choices[0].message.content
-            
+                ai_response = response.choices[0].message.content
+                tokens_used = response.usage.total_tokens if hasattr(response, 'usage') else 0
+                
             elif self.provider == "anthropic":
                 response = client.messages.create(
                     model=self.model,
@@ -83,19 +98,36 @@ class AIQuoteAgent:
                     ],
                     temperature=0.7
                 )
-                return response.content[0].text
+                ai_response = response.content[0].text
+                tokens_used = response.usage.input_tokens + response.usage.output_tokens if hasattr(response, 'usage') else 0
+            
+            duration = time.time() - start_time
+            
+            # Log the response
+            logger.info(f"AI Response: {ai_response[:200]}...")
+            logger.info(f"Tokens used: {tokens_used}")
+            logger.info(f"Duration: {duration:.2f}s")
+            logger.info(f"=== AI Call End ===")
+            
+            if log_callback:
+                log_callback(f"✅ AI responded in {duration:.1f}s ({tokens_used} tokens)")
+            
+            return ai_response
             
         except Exception as e:
             logger.error(f"Error calling AI provider: {e}")
+            if log_callback:
+                log_callback(f"❌ AI call failed: {str(e)}")
             raise
     
-    def analyze_player_context(self, db: Session, player_id: str) -> Dict[str, any]:
+    def analyze_player_context(self, db: Session, player_id: str, log_callback=None) -> Dict[str, any]:
         """
         Analyze player's recent answers to understand their context and themes.
         
         Args:
             db: Database session
             player_id: Player ID
+            log_callback: Optional callback for progress logging
             
         Returns:
             Dictionary with analysis results including themes, keywords, and sentiment
@@ -111,6 +143,9 @@ class AIQuoteAgent:
                 "answer_count": 0
             }
         
+        if log_callback:
+            log_callback(f"📊 Analyzing {len(recent_answers)} recent answers...")
+        
         # Prepare answer texts with questions for context
         answer_contexts = []
         for answer in recent_answers:
@@ -123,7 +158,7 @@ class AIQuoteAgent:
                 })
         
         # Use AI to analyze the context
-        system_prompt = """You are an expert at analyzing personal reflections and identifying themes, 
+        system_prompt = """You are an expert at analyzing personal reflections and identifying themes,
         keywords, and emotional tones. Analyze the provided question-answer pairs and extract:
         1. Main themes (3-5 themes)
         2. Key topics/keywords (5-10 keywords)
@@ -138,13 +173,19 @@ class AIQuoteAgent:
 Provide a JSON analysis of the main themes, keywords, and sentiment."""
         
         try:
-            ai_response = self._call_ai(system_prompt, user_prompt)
+            ai_response = self._call_ai(system_prompt, user_prompt, log_callback)
             # Parse JSON response
             analysis = json.loads(ai_response)
             analysis["answer_count"] = len(recent_answers)
+            
+            if log_callback:
+                log_callback(f"🎯 Found themes: {', '.join(analysis.get('themes', [])[:3])}")
+            
             return analysis
         except Exception as e:
             logger.error(f"Error analyzing player context: {e}")
+            if log_callback:
+                log_callback(f"⚠️ Analysis failed, using fallback")
             # Return basic analysis as fallback
             return {
                 "themes": ["reflection", "personal growth"],
@@ -283,7 +324,8 @@ Generate 3-5 specific topics for finding relevant quotes. Return as JSON array."
     def select_best_quote(
         self,
         db: Session,
-        player_id: str
+        player_id: str,
+        log_callback=None
     ) -> Tuple[Quote, float, str]:
         """
         Main method: Select the best quote for a player, either from existing quotes
@@ -292,6 +334,7 @@ Generate 3-5 specific topics for finding relevant quotes. Return as JSON array."
         Args:
             db: Database session
             player_id: Player ID
+            log_callback: Optional callback for progress logging
             
         Returns:
             Tuple of (quote, relevance_score, reason)
@@ -299,7 +342,9 @@ Generate 3-5 specific topics for finding relevant quotes. Return as JSON array."
         logger.info(f"AI Quote Agent selecting quote for player: {player_id}")
         
         # Step 1: Analyze player context
-        player_context = self.analyze_player_context(db, player_id)
+        if log_callback:
+            log_callback("🔍 Step 1: Analyzing your personality...")
+        player_context = self.analyze_player_context(db, player_id, log_callback)
         logger.info(f"Player context: {player_context}")
         
         # Step 2: Evaluate existing quotes

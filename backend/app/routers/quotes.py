@@ -159,13 +159,26 @@ async def get_matching_quote_stream(player_id: str, use_ai: bool = True, db: Ses
                     yield f"data: {json.dumps({'status': 'progress', 'message': f'Found {len(existing_quotes)} quotes in database'})}\n\n"
                     await asyncio.sleep(0.1)
                     
-                    # AI analysis
-                    yield f"data: {json.dumps({'status': 'progress', 'message': 'AI is analyzing your personality...'})}\n\n"
-                    await asyncio.sleep(0.1)
+                    # Create a callback to send AI logs to frontend
+                    async def log_callback(message):
+                        yield f"data: {json.dumps({'status': 'progress', 'message': message})}\n\n"
+                        await asyncio.sleep(0.05)
                     
-                    # Get the quote
+                    # Get the quote with detailed logging
                     logger.info(f"Using AI agent to select quote for player: {player_id}")
-                    quote, relevance_score, reason = ai_quote_agent.select_best_quote(db, player_id)
+                    
+                    # We need to handle the callback differently since select_best_quote is sync
+                    # Let's collect logs and send them
+                    logs = []
+                    def sync_log_callback(message):
+                        logs.append(message)
+                    
+                    quote, relevance_score, reason = ai_quote_agent.select_best_quote(db, player_id, sync_log_callback)
+                    
+                    # Send all collected logs
+                    for log_message in logs:
+                        yield f"data: {json.dumps({'status': 'progress', 'message': log_message})}\n\n"
+                        await asyncio.sleep(0.05)
                     
                     if quote.source == 'brainyquote' or quote.is_ai_generated:
                         yield f"data: {json.dumps({'status': 'progress', 'message': 'Found a perfect match from the web!'})}\n\n"
