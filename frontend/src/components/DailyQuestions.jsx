@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import './DailyQuestions.css';
 
 function DailyQuestions({ playerId }) {
+  const navigate = useNavigate();
   const [question, setQuestion] = useState(null);
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -71,7 +73,7 @@ function DailyQuestions({ playerId }) {
   };
 
   const handleFinish = () => {
-    window.location.href = '/quote';
+    navigate('/quote');
   };
 
   if (loading && !question) {
@@ -131,10 +133,10 @@ function DailyQuestions({ playerId }) {
                 <h3>✅ Answer Submitted!</h3>
                 <p>Would you like to answer another question?</p>
                 <div className="action-buttons">
-                  <button onClick={handleAnswerMore} className="btn-primary">
+                  <button onClick={handleAnswerMore} className="btn-secondary">
                     Answer More Questions
                   </button>
-                  <button onClick={handleFinish} className="btn-secondary">
+                  <button onClick={handleFinish} className="btn-primary">
                     Finish & Get Quote
                   </button>
                 </div>
