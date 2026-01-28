@@ -53,6 +53,9 @@ class Quote(Base):
     category = Column(String(50))
     keywords = Column(Text)  # Comma-separated keywords
     created_at = Column(DateTime, default=datetime.utcnow)
+    source = Column(String(255))  # Source URL or 'manual' for manually added quotes
+    is_ai_generated = Column(Integer, default=0)  # 0=manual, 1=AI-fetched from internet
+    ai_relevance_reason = Column(Text)  # AI's explanation for why this quote is relevant
     
     answer_matches = relationship("AnswerQuote", back_populates="quote", cascade="all, delete-orphan")
 

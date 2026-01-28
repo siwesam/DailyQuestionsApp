@@ -93,12 +93,17 @@ class QuoteBase(BaseModel):
 
 
 class QuoteCreate(QuoteBase):
-    pass
+    source: Optional[str] = None
+    is_ai_generated: Optional[int] = 0
+    ai_relevance_reason: Optional[str] = None
 
 
 class Quote(QuoteBase):
     id: int
     created_at: datetime
+    source: Optional[str] = None
+    is_ai_generated: Optional[int] = 0
+    ai_relevance_reason: Optional[str] = None
     
     class Config:
         from_attributes = True

@@ -7,6 +7,12 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
+    # AI Configuration
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+    ai_provider: str = "openai"  # "openai" or "anthropic"
+    ai_model: str = "gpt-4o-mini"  # or "claude-3-5-sonnet-20241022"
+    
     class Config:
         env_file = ".env"
 

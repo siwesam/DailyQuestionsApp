@@ -8,7 +8,11 @@ A full-stack web application where players answer random questions daily and rec
 - **Daily Questions**: Answer multiple random questions each day
 - **Smart Question Selection**: Avoids repeating questions within 30 days
 - **Answer History**: View all your previous answers
-- **Personalized Quotes**: Get inspirational quotes matched to your answers
+- **AI-Powered Quote Selection**: 🤖 NEW! Intelligent quote matching using AI
+  - Analyzes your answers to understand themes and context
+  - Selects most relevant quotes from database
+  - Automatically fetches new quotes from the internet when needed
+  - Provides explanations for why quotes are relevant
 - **Modern UI**: Clean, responsive interface built with React/Vue.js
 - **RESTful API**: Well-documented FastAPI backend
 - **PostgreSQL Database**: Robust data storage
@@ -157,9 +161,10 @@ Once the backend is running, visit:
 - `GET /api/answers/player/{player_id}/today` - Get today's answers
 
 #### Quotes
-- `GET /api/quotes/match/{player_id}` - Get matching quote for player
+- `GET /api/quotes/match/{player_id}?use_ai=true` - Get AI-matched quote for player
 - `GET /api/quotes/` - List all quotes
 - `POST /api/quotes/` - Create new quote
+- `GET /api/quotes/random` - Get random quote
 
 ## 🎮 Usage Flow
 
@@ -431,9 +436,11 @@ For issues and questions:
 - [ ] Mobile app (React Native)
 - [ ] Analytics dashboard
 - [ ] Multi-language support
-- [ ] AI-powered quote matching
+- [x] AI-powered quote matching ✅ **NEW!**
 - [ ] Streak tracking
 - [ ] Custom question creation
+- [ ] Quote quality feedback system
+- [ ] AI model fine-tuning based on user preferences
 
 ## 📊 Tech Stack
 
@@ -443,6 +450,8 @@ For issues and questions:
 - PostgreSQL (Database)
 - Pydantic (Data validation)
 - Uvicorn (ASGI server)
+- OpenAI / Anthropic (AI quote selection)
+- BeautifulSoup (Web scraping)
 
 **Frontend:**
 - React/Vue.js (UI framework)
@@ -465,3 +474,7 @@ For detailed implementation guidance, see [IMPLEMENTATION_GUIDE.md](IMPLEMENTATI
 For architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md)
 
 For project planning, see [PLAN.md](PLAN.md)
+
+**🤖 AI Quote System:**
+- Setup guide: [AI_QUOTE_SETUP_GUIDE.md](AI_QUOTE_SETUP_GUIDE.md)
+- Full documentation: [AI_QUOTE_SYSTEM.md](AI_QUOTE_SYSTEM.md)
