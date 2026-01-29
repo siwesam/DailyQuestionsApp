@@ -195,9 +195,10 @@ Provide a JSON analysis of the main themes, keywords, and sentiment."""
             }
     
     def evaluate_existing_quotes(
-        self, 
-        db: Session, 
-        player_context: Dict[str, any]
+        self,
+        db: Session,
+        player_context: Dict[str, any],
+        log_callback=None
     ) -> List[Tuple[Quote, float, str]]:
         """
         Evaluate existing quotes in the database for relevance to player context.
@@ -205,6 +206,7 @@ Provide a JSON analysis of the main themes, keywords, and sentiment."""
         Args:
             db: Database session
             player_context: Player context analysis from analyze_player_context
+            log_callback: Optional callback for progress logging
             
         Returns:
             List of tuples (quote, relevance_score, reason)
@@ -245,7 +247,20 @@ Quotes to evaluate:
 Evaluate each quote's relevance and return JSON array."""
         
         try:
-            ai_response = self._call_ai(system_prompt, user_prompt)
+            ai_response = self._call_ai(system_prompt, user_prompt, log_callback)
+            
+            # Try to extract JSON from the response (AI sometimes adds extra text)
+            ai_response = ai_response.strip()
+            
+            # Try to find JSON array in the response
+            if not ai_response.startswith('['):
+                # Look for JSON array in the response
+                start_idx = ai_response.find('[')
+                end_idx = ai_response.rfind(']')
+                if start_idx != -1 and end_idx != -1:
+                    ai_response = ai_response[start_idx:end_idx+1]
+            
+            logger.info(f"Parsing AI response for quote evaluation: {ai_response[:500]}...")
             evaluations = json.loads(ai_response)
             
             # Match evaluations back to quote objects
@@ -348,7 +363,9 @@ Generate 3-5 specific topics for finding relevant quotes. Return as JSON array."
         logger.info(f"Player context: {player_context}")
         
         # Step 2: Evaluate existing quotes
-        evaluated_quotes = self.evaluate_existing_quotes(db, player_context)
+        if log_callback:
+            log_callback("📚 Step 2: Evaluating existing quotes...")
+        evaluated_quotes = self.evaluate_existing_quotes(db, player_context, log_callback)
         
         if evaluated_quotes:
             best_quote, best_score, best_reason = evaluated_quotes[0]
