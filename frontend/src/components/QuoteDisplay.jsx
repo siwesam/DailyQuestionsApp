@@ -13,7 +13,19 @@ function QuoteDisplay({ playerId }) {
   }, [playerId]);
   
   const addProgressStep = (message) => {
-    setProgressSteps(prev => [...prev, { message, timestamp: Date.now() }]);
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      fractionalSecondDigits: 3
+    });
+    setProgressSteps(prev => [...prev, {
+      message,
+      timestamp: Date.now(),
+      timeString
+    }]);
   };
 
   const fetchQuoteWithProgress = async () => {
@@ -116,11 +128,22 @@ function QuoteDisplay({ playerId }) {
     return (
       <div className="progress-log-sidebar">
         <h3>🔍 AI Process Log</h3>
+        <div className="log-stats">
+          <span className="log-count">{progressSteps.length} steps</span>
+          {progressSteps.length > 1 && (
+            <span className="log-duration">
+              {((progressSteps[progressSteps.length - 1].timestamp - progressSteps[0].timestamp) / 1000).toFixed(1)}s total
+            </span>
+          )}
+        </div>
         <div className="progress-log-content">
           {progressSteps.map((step, index) => (
             <div key={step.timestamp} className="log-entry">
-              <span className="log-icon">✓</span>
-              <span className="log-message">{step.message}</span>
+              <span className="log-timestamp">{step.timeString}</span>
+              <div className="log-content">
+                <span className="log-icon">✓</span>
+                <span className="log-message">{step.message}</span>
+              </div>
             </div>
           ))}
         </div>
