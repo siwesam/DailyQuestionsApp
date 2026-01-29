@@ -302,12 +302,23 @@
   }
 }
 
-.loading p {
+.loading-message {
+  text-align: center;
+}
+
+.loading-message p {
   color: #10b981;
   font-size: 1.2rem;
   font-weight: 600;
-  margin: 0;
+  margin: 0.5rem 0;
   animation: fadeIn 0.5s ease-in-out;
+}
+
+.loading-hint {
+  color: #6b7280 !important;
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  font-style: italic;
 }
 
 .progress-steps {

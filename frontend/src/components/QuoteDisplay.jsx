@@ -89,9 +89,12 @@ function QuoteDisplay({ playerId }) {
     try {
       setLoading(true);
       setError(null);
+      setProgressSteps([]); // Clear old logs
       console.log('Fetching random quote');
+      addProgressStep('Getting a random quote...');
       const data = await api.getRandomQuote();
       console.log('Random quote data received:', data);
+      addProgressStep('Random quote loaded!');
       // Add relevance_score of 0 for random quotes
       setQuote({ ...data, relevance_score: 0 });
     } catch (err) {
@@ -104,17 +107,18 @@ function QuoteDisplay({ playerId }) {
 
   if (loading) {
     return (
-      <div className="quote-container">
-        <div className="loading">
-          <div className="loading-spinner">✨</div>
-          <div className="progress-steps">
-            {progressSteps.map((step, index) => (
-              <div key={step.timestamp} className="progress-step">
-                <span className="step-icon">✓</span>
-                <span className="step-message">{step.message}</span>
-              </div>
-            ))}
-            {progressSteps.length === 0 && <p>Finding your perfect quote...</p>}
+      <div className="quote-container-with-log">
+        {progressSteps.length > 0 && renderProgressLog()}
+        
+        <div className="quote-container">
+          <div className="loading">
+            <div className="loading-spinner">✨</div>
+            <div className="loading-message">
+              <p>Finding your perfect quote...</p>
+              {progressSteps.length > 0 && (
+                <p className="loading-hint">Watch the AI process log →</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
