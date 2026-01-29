@@ -1,6 +1,80 @@
-.quote-container {
-  max-width: 800px;
+.quote-container-with-log {
+  display: flex;
+  gap: 2rem;
+  max-width: 1400px;
   margin: 0 auto;
+  align-items: flex-start;
+}
+
+.quote-container {
+  flex: 1;
+  max-width: 800px;
+}
+
+.progress-log-sidebar {
+  width: 350px;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 2rem;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+.progress-log-sidebar h3 {
+  color: #333;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #10b981;
+}
+
+.progress-log-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+.log-icon {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.log-message {
+  color: #059669;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@media (max-width: 1200px) {
+  .quote-container-with-log {
+    flex-direction: column-reverse;
+  }
+  
+  .progress-log-sidebar {
+    width: 100%;
+    position: static;
+    max-height: 400px;
+  }
+  
+  .quote-container {
+    max-width: 100%;
+  }
 }
 
 .quote-card {

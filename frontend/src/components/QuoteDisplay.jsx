@@ -108,6 +108,25 @@ function QuoteDisplay({ playerId }) {
       </div>
     );
   }
+  
+  // Render progress log sidebar when quote is loaded
+  const renderProgressLog = () => {
+    if (progressSteps.length === 0) return null;
+    
+    return (
+      <div className="progress-log-sidebar">
+        <h3>🔍 AI Process Log</h3>
+        <div className="progress-log-content">
+          {progressSteps.map((step, index) => (
+            <div key={step.timestamp} className="log-entry">
+              <span className="log-icon">✓</span>
+              <span className="log-message">{step.message}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   if (error) {
     return (
@@ -128,13 +147,16 @@ function QuoteDisplay({ playerId }) {
   }
 
   return (
-    <div className="quote-container">
-      <div className="quote-card">
-        <div className="quote-icon">✨</div>
-        <h2>Your Personalized Quote</h2>
-        
-        {quote && (
-          <>
+    <div className="quote-container-with-log">
+      {renderProgressLog()}
+      
+      <div className="quote-container">
+        <div className="quote-card">
+          <div className="quote-icon">✨</div>
+          <h2>Your Personalized Quote</h2>
+          
+          {quote && (
+            <>
             <div className="quote-text">
               <p className="quote-content">"{quote.quote_text}"</p>
               <p className="quote-author">— {quote.author}</p>
@@ -179,6 +201,7 @@ function QuoteDisplay({ playerId }) {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }
