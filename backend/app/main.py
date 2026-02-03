@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base, SessionLocal
-from .routers import players, questions, answers, quotes
+from .routers import players, questions, answers, quotes, agent_config
 from . import models
 
 # Create database tables
@@ -158,6 +158,7 @@ app.include_router(players.router)
 app.include_router(questions.router)
 app.include_router(answers.router)
 app.include_router(quotes.router)
+app.include_router(agent_config.router)
 
 
 @app.get("/")
